@@ -1,9 +1,9 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers.post_login import login_router
-from app.routers.registration import registration_router
-from app.routers.payment import payment_router
-from app.routers.personality_test.personalityTest import personality_test_router
+from domain.post_login import login_router
+from domain.registration import registration_router
+from domain.payment import payment_router
+from interface.rest.personality_test_controller import personality_test_router
 
 app = FastAPI()
 app.include_router(login_router)

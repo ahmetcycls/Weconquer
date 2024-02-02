@@ -1,17 +1,11 @@
-from typing import List
-
 from db import db
-from app.routers.personality_test.models import  QuestionBatch, User, SubmitAnswers, UserSession, BatchPackage
-from app.routers.personality_test.judge import judge
+from domain.personality_test.models import  QuestionBatch, SubmitAnswers, UserSession, BatchPackage
+from domain.user.models import User
+from domain.personality_test.judge import judge
 import random
-from datetime import datetime
 
-async def get_user_data(user_id: str):
-    query = f"users?auth_provider_id=eq.{user_id}"
 
-    db_response = await db(path = query, method = "get")
-    print(db_response.json())
-    return User(**db_response.json()[0])
+
 
 async def get_first_question_batch(user_id):
     # question_batch: QuestionBatch = await get_question_batch(user.tier_type, 1, user_id)

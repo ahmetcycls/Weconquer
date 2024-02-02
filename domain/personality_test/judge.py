@@ -1,11 +1,7 @@
-from typing import List
-
-from fastapi import APIRouter, Request
-
-from openai import AsyncOpenAI, OpenAI
+from openai import AsyncOpenAI
 from dotenv import load_dotenv
 import os
-from app.routers.personality_test.models import SubmitAnswers, Answer
+from domain.personality_test.models import SubmitAnswers, Answer
 from db import db
 
 load_dotenv()
@@ -50,20 +46,22 @@ async def judge(answers: SubmitAnswers):
             response_of_saved_score = await save_score(answer, userID)
             print(response_of_saved_score)
 
-    valid_scores_sum = sum(score for score in scores if score is not None)
+    total_score = 0
+    for score in scores:
+        total_score += score
 
-    # Count the number of valid scores
-    valid_scores_count = sum(1 for score in scores if score is not None)
-
-    # Calculate the average, ensuring to avoid division by zero
-    average_score = round(valid_scores_sum / valid_scores_count) if valid_scores_count > 0 else None
-
-    return average_score
+    return total_score
 
 async def save_score(answer: Answer, userID: str):
     answer.user_id = userID
     print(answer.dict())
     response = await db(path = "user_answers", method = "post", data = answer.dict())
+    response = response.json()
+    print(response)
+    return response
+
+async def save_total_score(score: int, userID: str, trait_type: str):
+    response = await db(path = "user_scores", method = "post", data = {"score": score, "user_id": userID, "trait_type": trait_type})
     response = response.json()
     print(response)
     return response
