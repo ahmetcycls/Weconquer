@@ -12,7 +12,7 @@ class Task(graphene.ObjectType):
     skills = graphene.List(graphene.String)
     subtasks = graphene.List(lambda: Task)
 
-
+TaskCreate
 class CreateTask(graphene.Mutation):
     class Arguments:
         title = graphene.String(required=True)
