@@ -1,0 +1,31 @@
+# within project_router.py file the @router.post("/create/") endpoint is called with 3 fields within the json:
+
+
+{
+    "name": "string",
+    "description": "string",
+    "user_id": "string"
+}
+
+
+First we will check if the user_id exists within the user node and then create the project with the above attributes:
+
+- Get the shortID
+- post the shortID and the userID to the user_projects sql table
+
+
+Next goal: Get Project Tree data
+
+- Build two post endpoint that takes a user_id and project_short_id and returns the project tree data
+        Endpoint NR1: For the front-end to read
+        Endpoint NR2: And for the AI to read
+- Organize the tree in such a way that it can be easily rendered in the frontend
+
+Or shall we make the front-end organize everything for the AI to read the text?
+
+
+
+Add task to project
+
+- Check the functions again that add a task to a project,
+we prefer that the user_id and project_shor_id's are passed so the search will be optimized

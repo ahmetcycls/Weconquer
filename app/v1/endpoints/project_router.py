@@ -1,12 +1,15 @@
 # app/api/v1/endpoints/project_endpoint.py
 from fastapi import APIRouter, HTTPException, FastAPI, Request
 from app.domain.project.services import check_project_exists_for_user
-from app.infrastructure.database.neo4j.repository_impl import create_projects_node_if_not_exists
+from app.domain.user.repository_impl import create_project_for_user
 from app.infrastructure.database.neo4j.neo4j_connection import neo4j_conn
+from pydantic import BaseModel
 
 
 router = APIRouter()
-@router.get("/test-neo4j")
+
+
+@router.get("/")
 def get_projects():
     query = "MATCH (projects:Project) RETURN projects"
     try:
@@ -17,19 +20,18 @@ def get_projects():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-    # [ < Record
-    # projects = < Node
-    # element_id = '4:9ea1d287-3096-4709-a488-b3602ec4e124:0'
-    # labels = frozenset({'Project'})
-    # properties = {'name': 'First Project', 'description': 'This is a sample project.', 'projectId': 'project1'} >>]
-@router.post("/projects/")
-async def create_project(user_id: int, project_data: dict):
-    # Check if any project exists for the user in PostgreSQL
-    if not await check_project_exists_for_user(user_id):
-        raise HTTPException(status_code=404, detail="User not found or no projects exist for this user.")
+class ProjectCreateRequest(BaseModel):
+    user_id: str
+    description: str
+    name: str
 
-    # Ensure the "Projects" node exists for this user in Neo4j
-    create_projects_node_if_not_exists(user_id)
+@router.post("/create/")
+def create_project(payload: ProjectCreateRequest):
+    try:
+        result = create_project_for_user(payload.user_id ,payload.description, payload.name)
+        return {"message": "Project created successfully", "data": result}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
     # Proceed to create the new project in Neo4j and link it under the "Projects" node
     # This part would inv
