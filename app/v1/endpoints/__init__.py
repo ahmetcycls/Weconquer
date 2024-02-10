@@ -1,0 +1,1 @@
+from app.v1.endpoints.ai_copilot_router import router as AI_copilot_router

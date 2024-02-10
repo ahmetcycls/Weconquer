@@ -45,6 +45,10 @@ def create_task_under_node(user_id: str, project_node_id: str, tasks: List[Dict]
                 results.extend(subtask_results)
 
     return results
+
+
+
+
 def update_task_by_node_id(node_id: str, update_details: dict):
     set_clauses = ", ".join([f"n.{key} = ${key}" for key in update_details.keys()])
     query = f"""
