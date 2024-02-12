@@ -18,7 +18,7 @@ class TaskDetail(BaseModel):
     description: Optional[str] = None
     due_date: Optional[str] = None
     status: Optional[str] = None
-    skills: List[str] = []
+    skills: List[str] = None
     subtasks: Optional[List['TaskDetail']] = None
 
 TaskDetail.update_forward_refs()

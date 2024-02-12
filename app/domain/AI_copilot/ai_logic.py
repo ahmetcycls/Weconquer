@@ -4,10 +4,18 @@ from openai import OpenAI
 import json
 import dotenv
 import os
-
+from app.v1.endpoints.project_router import get_project_graph_in_readable_format
 dotenv.load_dotenv()
 
-async def AI(user):
+prompt = """ You are a project manager assistant, you scale projects seamlessly by suggesting and creating branches and tasks unlimitedly.
+     The current project structure looks as follows: {}
+        
+     Chat with the user so you can unlimitedly scale the project!
+     """
+
+
+async def ai(ai_payload):
+
     client = OpenAI()
     client.api_key = os.getenv("OPENAI_API_KEY")
 
@@ -36,8 +44,8 @@ async def AI(user):
     ]
 
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo-0613",
-        messages=user.history,
+        model="gpt-4-0125-preview",
+        messages=ai_payload.history,
         tools=tools,
         tool_choice="auto",  #
     )
@@ -46,25 +54,30 @@ async def AI(user):
     if tool_calls:
 
         available_functions = {
-            "assistant_to_create_tasks_under_node": assistant_to_create_branches_or_task_under_node,
+            "assistant_to_create_branches_or_task_under_node": assistant_to_create_branches_or_task_under_node,
         }  # only one function in this example, but you can have multiple
-        user.history.append(response_message)  # extend conversation with assistant's reply
+        ai_payload.history.append(response_message)  # extend conversation with assistant's reply
         # Step 4: send the info for each function call and function response to the model
         for tool_call in tool_calls:
+            print("function calling is active")
             function_name = tool_call.function.name
+            print(function_name, "function name")
+
             function_to_call = available_functions[function_name]
+            print(function_to_call, "function to call")
             function_args = json.loads(tool_call.function.arguments)
-            function_response = function_to_call(
+            function_response = await function_to_call(
                 **function_args
             )
-            user.history.append(
+            print(function_response)
+            (ai_payload.history.append(
                 {
                     "tool_call_id": tool_call.id,
                     "role": "tool",
                     "name": function_name,
                     "content": function_response,
                 }
-            )
-        return await AI(user)
-    user.history.append(response_message)
-    return user.history
+            ))
+        return await ai(ai_payload)
+    ai_payload.history.append({"role": "assistant", "content": response_message.content})
+    return ai_payload.history

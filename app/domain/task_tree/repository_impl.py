@@ -11,34 +11,43 @@ def generate_unique_short_id() -> str:
     return shortuuid.ShortUUID().random(length=10)
 
 
-def create_task_under_node(user_id: str, project_node_id: str, tasks: List[Dict], parent_node_id: Optional[str] = None) -> List[str]:
+def create_task_under_node(user_id: str, project_node_id: str, tasks: List[Dict],
+                           parent_node_id: Optional[str] = None) -> List[str]:
     results = []
 
     for task in tasks:
         node_id = generate_unique_short_id()
+        # Filter out 'subtasks' from the task properties
         task_properties = {k: v for k, v in task.items() if k != 'subtasks'}
-        properties_str = ", ".join(f"{k}: '{v}'" if isinstance(v, str) else f"{k}: {v}" for k, v in task_properties.items())
+
+        # Dynamically build the SET part of the query based on provided task properties
+        set_clauses = ", ".join(f"task.{k} = ${k}" for k in task_properties.keys())
 
         if parent_node_id:
-            # Linking task to another task
-            parent_match_query = f"MATCH (parent:Task {{nodeId: '{parent_node_id}'}})"
+            parent_match_query = "MATCH (parent:Task {nodeId: $parentNodeId})"
         else:
-            # Linking task directly to a project
-            parent_match_query = f"MATCH (parent:Project {{projectNodeId: '{project_node_id}'}})"
+            parent_match_query = "MATCH (parent:Project {projectNodeId: $projectNodeId})"
 
         query = f"""
         {parent_match_query}
-        CREATE (parent)-[:HAS_TASK]->(task:Task {{nodeId: '{node_id}', {properties_str}}})
+        CREATE (parent)-[:HAS_TASK]->(task:Task {{nodeId: $nodeId}})
+        SET {set_clauses}
         RETURN task.nodeId AS nodeId
         """
-        parameters = {"nodeId": node_id, **task_properties}
-        result = neo4j_conn.query(query, parameters)
 
-        if result:
+        parameters = {"nodeId": node_id, **task_properties}
+        if parent_node_id:
+            parameters["parentNodeId"] = parent_node_id
+        else:
+            parameters["projectNodeId"] = project_node_id
+
+        result = neo4j_conn.query(query, parameters=parameters)
+
+        if result and result[0]:
             new_task_node_id = result[0]["nodeId"]
             results.append(new_task_node_id)
 
-            # Handling subtasks recursively
+            # Handle subtasks recursively, if any
             subtasks = task.get('subtasks', [])
             if subtasks:
                 subtask_results = create_task_under_node(user_id, project_node_id, subtasks, new_task_node_id)
