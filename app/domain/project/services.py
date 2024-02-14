@@ -13,7 +13,7 @@ async def check_project_exists_for_user(user_id: int) -> bool:
 from app.infrastructure.database.neo4j.neo4j_connection import neo4j_conn
 
 
-def fetch_project_hierarchy(project_node_id: str, user_id: str):
+async def fetch_project_hierarchy(project_node_id: str, user_id: str):
     # Adjusted query to start with the User node
     query = """
         MATCH (user:User {userId: $user_id})-[:HAS_PROJECT]->(project:Project {projectNodeId: $project_node_id})
@@ -65,13 +65,13 @@ def fetch_project_hierarchy(project_node_id: str, user_id: str):
     # Remove 'subtasks' key from the project if there are no top-level tasks
     if not project_structure["subtasks"]:
         project_structure.pop("subtasks", None)
-    project_text_representation = format_project_to_text(project_structure)
+    project_text_representation =await format_project_to_text(project_structure)
 
     project_text_representation = "The current project state is as follows:" + project_text_representation
     return project_text_representation
 
 
-def format_project_to_text(project, indent=0):
+async def format_project_to_text(project, indent=0):
     # Base indentation for this level
     base_indent = "    " * indent
     # Start building the string representation
@@ -83,7 +83,7 @@ def format_project_to_text(project, indent=0):
         project_str += f'{base_indent}subtasks: \n'
         # Iterate through each subtask and recursively format it
         for subtask in project["subtasks"]:
-            project_str += format_project_to_text(subtask, indent + 2)  # Increase indentation for subtasks
+            project_str += await format_project_to_text(subtask, indent + 2)  # Increase indentation for subtasks
     else:
         # If there are no subtasks, remove the trailing comma from the title line
         project_str = project_str.rstrip(",\n") + "\n"

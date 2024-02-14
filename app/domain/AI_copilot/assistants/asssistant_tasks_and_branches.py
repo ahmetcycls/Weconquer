@@ -1,6 +1,6 @@
 
 from app.domain.AI_copilot.models import AI_copilot
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 import json
 import dotenv
 import os
@@ -11,13 +11,13 @@ from pydantic import parse_obj_as
 dotenv.load_dotenv()
 async def chatGPT(prompt):
 
-    client = OpenAI()
+    client = AsyncOpenAI()
     client.api_key = os.getenv("OPENAI_API_KEY")
 
     messages = [{"role": "user", "content": prompt}]
 
-
-    response = client.chat.completions.create(
+    # gpt - 4 - 0125 - preview
+    response = await client.chat.completions.create(
         model="gpt-3.5-turbo-1106",
         messages=messages,
         response_format={ "type": "json_object"}
@@ -68,7 +68,7 @@ async def assistant_to_create_branches_or_task_under_node(nodeId: str, instructi
 
         #Update the front-end graph with websockets
         projectReadRequest = ProjectReadRequest(project_node_id=ai_payload.project_node_id, user_id=ai_payload.user_id)
-        response_graph_readable = get_project_graph_in_readable_format(projectReadRequest)
+        response_graph_readable = await get_project_graph_in_readable_format(projectReadRequest)
         response_graph_readable = "Users graph is updated, this is the whole table, the user sees the updated graph already.: " + response_graph_readable
 
         return response_graph_readable

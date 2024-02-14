@@ -1,6 +1,6 @@
 from app.domain.AI_copilot.models import AI_copilot
 from app.domain.AI_copilot.assistants.asssistant_tasks_and_branches import assistant_to_create_branches_or_task_under_node
-from openai import OpenAI
+from openai import OpenAI, AsyncOpenAI
 import json
 import dotenv
 import os
@@ -21,7 +21,7 @@ available_functions = {
 
 
 async def ai(ai_payload: AI_copilot):
-    client = OpenAI()
+    client = AsyncOpenAI()
     client.api_key = os.getenv("OPENAI_API_KEY")
     tools = [
         {
@@ -46,16 +46,15 @@ async def ai(ai_payload: AI_copilot):
             },
         }
     ]
-
+    #gpt - 3.5 - turbo - 1106
     messages = ai_payload.history
     print("WE ARE HERE")
-    response = client.chat.completions.create(
+    response = await client.chat.completions.create(
         model="gpt-3.5-turbo-1106",
         messages=messages,
         tools=tools,
         tool_choice="auto"
     )
-    print("WE ARE HERE 1 ")
 
     response_message = response.choices[0].message
     print("WE ARE HERE 2 ")

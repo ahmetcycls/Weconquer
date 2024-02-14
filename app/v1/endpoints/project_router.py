@@ -16,8 +16,8 @@ class ProjectReadRequest(BaseModel):
     user_id: str
 
 @router.post("/readable_format")
-def get_project_graph_in_readable_format(payload: ProjectReadRequest):
-    project_data = fetch_project_hierarchy(payload.project_node_id, payload.user_id)
+async def get_project_graph_in_readable_format(payload: ProjectReadRequest):
+    project_data = await fetch_project_hierarchy(payload.project_node_id, payload.user_id)
     if not project_data:
         raise HTTPException(status_code=404, detail="Project not found")
     return project_data
