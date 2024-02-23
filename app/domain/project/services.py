@@ -12,6 +12,17 @@ async def check_project_exists_for_user(user_id: int) -> bool:
 
 from app.infrastructure.database.neo4j.neo4j_connection import neo4j_conn
 
+async def fetch_graph_data_for_vis_js(project_node_id: str, user_id: str):
+    query = """
+    MATCH (user:User {userId: $user_id})-[:HAS_PROJECT]->(project:Project {projectNodeId: $project_node_id})
+    OPTIONAL MATCH (project)-[:HAS_TASK*0..]->(task:Task)
+    OPTIONAL MATCH (task)-[:HAS_TASK]->(subtask:Task)
+    RETURN project AS project, collect(DISTINCT task) AS tasks, collect(DISTINCT {parent: task, child: subtask}) AS relationships
+    """
+    parameters = {"user_id": user_id, "project_node_id": project_node_id}
+    results = neo4j_conn.query(query, parameters)
+    formatted_results_for_vis_js = format_graph_data(results)
+    return formatted_results_for_vis_js
 
 async def fetch_project_hierarchy(project_node_id: str, user_id: str):
     # Adjusted query to start with the User node
@@ -21,6 +32,8 @@ async def fetch_project_hierarchy(project_node_id: str, user_id: str):
         OPTIONAL MATCH (task)-[:HAS_TASK]->(subtask:Task)
         RETURN project AS project, collect(DISTINCT task) AS tasks, collect(DISTINCT {parent: task, child: subtask}) AS relationships
         """
+
+
     results = neo4j_conn.query(query, parameters={"user_id": user_id, "project_node_id": project_node_id})
     print(results)
     if not results or not results[0]['project']:
@@ -89,6 +102,61 @@ async def format_project_to_text(project, indent=0):
         project_str = project_str.rstrip(",\n") + "\n"
 
     return project_str
+
+def format_graph_data(results):
+    nodes = []
+    edges = []
+
+    # Process each record in the results
+    for record in results:
+        # Process the project node
+        project = record['project']
+        project_node_id = project['projectNodeId']  # Store project node ID for later use
+        nodes.append({
+            'id': project_node_id,
+            'label': project.get('name', 'Unnamed Project'),
+            'title': project.get('description', ''),
+            'group': 'project'
+        })
+
+        # Process each task node
+        tasks = record['tasks']
+        task_ids = []  # Keep track of task IDs to determine top-level tasks
+        for task in tasks:
+            task_id = task['nodeId']
+            task_ids.append(task_id)
+            nodes.append({
+                'id': task_id,
+                'label': task.get('title', 'Unnamed Task'),
+                'title': task.get('description', ''),
+                'group': 'task',
+                'status': task.get('status', ''),
+                'assigned_to': task.get('assigned_to', 'Unassigned')
+            })
+
+        # Process relationships and identify top-level tasks
+        top_level_tasks = set(task_ids)  # Start with all tasks as potentially top-level
+        relationships = record['relationships']
+        for rel in relationships:
+            if rel['child'] is not None:  # Ensure there's a child task
+                child_id = rel['child']['nodeId']
+                parent_id = rel['parent']['nodeId']
+                edges.append({
+                    'from': parent_id,
+                    'to': child_id
+                })
+                if child_id in top_level_tasks:
+                    top_level_tasks.remove(child_id)  # Remove from top-level tasks as it has a parent
+
+        # Add edges from project to each top-level task
+        for task_id in top_level_tasks:
+            edges.append({
+                'from': project_node_id,
+                'to': task_id
+            })
+
+    graph_data = {'nodes': nodes, 'edges': edges}
+    return graph_data
 
 
 # Assuming `project_data` is your hierarchical project structure

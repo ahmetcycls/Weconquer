@@ -20,7 +20,7 @@ available_functions = {
 }  # only one function in this example, but you can have multiple
 
 
-async def ai(ai_payload: AI_copilot):
+async def ai(ai_payload: AI_copilot, sio, sid):
     client = AsyncOpenAI()
     client.api_key = os.getenv("OPENAI_API_KEY")
     tools = [
@@ -64,7 +64,7 @@ async def ai(ai_payload: AI_copilot):
         print("function calling is active")
 
         del response_message.function_call
-        ai_payload.history.append(response_message)    # extend conversation with assistant's reply
+        ai_payload.history.append(response_message.dict())    # extend conversation with assistant's reply
 
         for tool_call in tool_calls:
             function_name = tool_call.function.name
@@ -74,18 +74,22 @@ async def ai(ai_payload: AI_copilot):
             function_args = json.loads(tool_call.function.arguments)
 
             function_args["ai_payload"] = ai_payload
+            function_args["sio"] = sio
+            function_args["sid"] = sid
+
             function_response = await function_to_call(
                 **function_args
             )
 
-            (ai_payload.history.append(
+            ai_payload.history.append(
                 {
                     "tool_call_id": tool_call.id,
                     "role": "tool",
                     "name": function_name,
                     "content": function_response,
                 }
-            ))
-        return await ai(ai_payload)
+            )
+            print(f"Function calling has finished and the response is added to the history{function_response}")
+        return await ai(ai_payload, sio, sid)
     ai_payload.history.append({"role": "assistant", "content": response_message.content})
     return ai_payload

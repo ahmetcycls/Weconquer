@@ -1,6 +1,6 @@
 # app/api/v1/endpoints/project_endpoint.py
 from fastapi import APIRouter, HTTPException, FastAPI, Request
-from app.domain.project.services import check_project_exists_for_user, fetch_project_hierarchy
+from app.domain.project.services import check_project_exists_for_user, fetch_project_hierarchy, fetch_graph_data_for_vis_js
 from app.domain.user.repository_impl import create_project_for_user
 from app.infrastructure.database.neo4j.neo4j_connection import neo4j_conn
 from pydantic import BaseModel
@@ -14,8 +14,13 @@ router = APIRouter()
 class ProjectReadRequest(BaseModel):
     project_node_id: str | None
     user_id: str
-
-@router.post("/readable_format")
+@router.post("/get_project_graph")
+async def fetch_graph(payload: ProjectReadRequest):
+    project_data = await fetch_graph_data_for_vis_js(payload.project_node_id, payload.user_id)
+    if not project_data:
+        raise HTTPException(status_code=404, detail="Project not found")
+    return project_data
+@router.post("/get_project_graph_in_readable_format")
 async def get_project_graph_in_readable_format(payload: ProjectReadRequest):
     project_data = await fetch_project_hierarchy(payload.project_node_id, payload.user_id)
     if not project_data:
@@ -32,6 +37,7 @@ def get_projects():
         return {"projects": projects}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 
 class ProjectCreateRequest(BaseModel):
     user_id: str
