@@ -50,7 +50,7 @@ async def ai(ai_payload: AI_copilot, sio, sid):
     messages = ai_payload.history
     print("WE ARE HERE")
     response = await client.chat.completions.create(
-        model="gpt-3.5-turbo-1106",
+        model="gpt-4-0125-preview",
         messages=messages,
         tools=tools,
         tool_choice="auto"

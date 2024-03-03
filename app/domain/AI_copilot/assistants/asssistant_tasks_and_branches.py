@@ -18,7 +18,7 @@ async def chatGPT(prompt):
     #gpt-3.5-turbo-1106
     # gpt - 4 - 0125 - preview
     response = await client.chat.completions.create(
-        model="gpt-3.5-turbo-1106",
+        model="gpt-4-0125-preview",
         messages=messages,
         response_format={ "type": "json_object"}
     )

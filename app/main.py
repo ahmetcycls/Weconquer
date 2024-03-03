@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.v1.routers import api_router, ai_copilot_router
+from app.v1.routers import api_router, ai_copilot_router, task_router
 import socketio
 
 app = FastAPI()
@@ -18,3 +18,4 @@ app.add_middleware(
 )
 
 ai_copilot_router.register_socketio_events(sio)
+task_router.register_socketio_events(sio)
