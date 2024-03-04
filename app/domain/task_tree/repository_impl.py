@@ -58,7 +58,9 @@ def create_task_under_node(user_id: str, project_node_id: str, tasks: List[Dict]
 def create_task_under_node_manual(user_id: str, project_node_id: str, tasks: List[Dict],
                            parent_node_id: Optional[str] = None, sio=None, sid=None):
     results = []
+    is_project_node = False
     if project_node_id == parent_node_id:
+        is_project_node = True
         parent_node_id = None
 
     for task in tasks:
@@ -103,7 +105,10 @@ def create_task_under_node_manual(user_id: str, project_node_id: str, tasks: Lis
     node_id_to_format = results[0]
 
     the_task["nodeId"] = node_id_to_format
-    the_task["edge"] = {"from": parent_node_id, "to": node_id_to_format}
+    if is_project_node:
+        the_task["edge"] = {"from": project_node_id, "to": node_id_to_format}
+    else:
+        the_task["edge"] = {"from": parent_node_id, "to": node_id_to_format}
     print(the_task)
     return the_task
 
