@@ -58,6 +58,8 @@ def create_task_under_node(user_id: str, project_node_id: str, tasks: List[Dict]
 def create_task_under_node_manual(user_id: str, project_node_id: str, tasks: List[Dict],
                            parent_node_id: Optional[str] = None, sio=None, sid=None):
     results = []
+    if project_node_id == parent_node_id:
+        parent_node_id = None
 
     for task in tasks:
         node_id = generate_unique_short_id()
@@ -73,6 +75,7 @@ def create_task_under_node_manual(user_id: str, project_node_id: str, tasks: Lis
             parent_match_query = "MATCH (parent:Project {projectNodeId: $projectNodeId})"
 
         query = f"""
+        
         {parent_match_query}
         CREATE (parent)-[:HAS_TASK]->(task:Task {{nodeId: $nodeId}})
         SET {set_clauses}
@@ -86,7 +89,7 @@ def create_task_under_node_manual(user_id: str, project_node_id: str, tasks: Lis
             parameters["projectNodeId"] = project_node_id
 
         result = neo4j_conn.query(query, parameters=parameters)
-
+        print(result)
         if result and result[0]:
             new_task_node_id = result[0]["nodeId"]
             results.append(new_task_node_id)
@@ -115,3 +118,75 @@ def update_task_by_node_id(node_id: str, update_details: dict):
     parameters = {"node_short_id": node_id, **update_details}
     result = neo4j_conn.query(query, parameters)
     return result
+
+# def delete_node_and_subnodes(user_id: str, node_id: str, project_node_id: str):
+#     query = """
+#     MATCH (user:User {userId: $userId})-[:HAS_PROJECT]->(project {projectNodeId: $projectNodeId})
+#     MATCH (project)-[:HAS_TASK*0..]->(parent)-[:HAS_TASK*0..]->(task:Task {nodeId: $nodeId})
+#     WITH parent, task, COUNT(task) AS tasksToDelete
+#     DETACH DELETE task
+#     WITH parent, SUM(tasksToDelete) AS totalTasksToDelete
+#     WHERE NOT EXISTS ((parent)-[:HAS_TASK]->())
+#     DETACH DELETE parent
+#     RETURN totalTasksToDelete > 0 AS deletionOccurred
+#     """
+#     parameters = {"userId": user_id, "nodeId": node_id, "projectNodeId": project_node_id}
+#     result = neo4j_conn.query(query, parameters)
+#     return result
+
+def delete_node_and_subnodes(user_id: str, node_id: str, project_node_id: str):
+    query = """
+    MATCH (user:User {userId: $userId})-[:HAS_PROJECT]->(project {projectNodeId: $projectNodeId})
+    OPTIONAL MATCH (project)-[:HAS_TASK*]->(task:Task {nodeId: $nodeId})
+    WITH project, COLLECT(task) AS tasksToDelete
+    CALL {
+        WITH tasksToDelete
+        UNWIND tasksToDelete AS taskToDelete
+        DETACH DELETE taskToDelete
+    }
+    OPTIONAL MATCH (project)-[:HAS_TASK]->(remainingTask)
+    WITH project, SIZE(tasksToDelete) > 0 AS deletionOccurred, COUNT(remainingTask) AS remainingTasks
+    RETURN deletionOccurred, remainingTasks > 0 AS projectRetained
+    """
+    parameters = {"userId": user_id, "nodeId": node_id, "projectNodeId": project_node_id}
+    result = neo4j_conn.query(query, parameters)
+    return result
+def delete_subnodes_and_their_relationships(user_id: str, project_node_id: str, node_id: str):
+    print(project_node_id, node_id, "delete_subnodes_and_their_relationships")
+    # Check if node_id is the same as project_node_id, indicating deletion beneath the project node
+    if project_node_id == node_id:
+        query = """
+        MATCH (user:User {userId: $userId})-[:HAS_PROJECT]->(project {projectNodeId: $projectNodeId})
+        OPTIONAL MATCH (project)-[:HAS_TASK*]->(subNode)
+        WHERE subNode.nodeId <> $projectNodeId
+        OPTIONAL MATCH (subNode)-[r]-()
+        DETACH DELETE subNode
+        RETURN COUNT(DISTINCT subNode) AS deletedSubNodes, COUNT(DISTINCT r) AS deletedRelationships
+        """
+    else:
+        query = """
+        MATCH (user:User {userId: $userId})-[:HAS_PROJECT]->(project {projectNodeId: $projectNodeId})
+        MATCH (project)-[:HAS_TASK*0..]->(rootNode {nodeId: $nodeId})-[:HAS_TASK*]->(subNode)
+        OPTIONAL MATCH (subNode)-[r]-()
+        DETACH DELETE subNode
+        RETURN COUNT(DISTINCT subNode) AS deletedSubNodes, COUNT(DISTINCT r) AS deletedRelationships
+        """
+    parameters = {"userId": user_id, "projectNodeId": project_node_id, "nodeId": node_id}
+    result = neo4j_conn.query(query, parameters)
+    return result
+    #In the future for dynamic graph update after update instead of refreshing the whole graph
+    # def delete_node_and_subnodes(user_id: str, node_id: str, project_node_id: str):
+    #     query = """
+    #     MATCH (user:User {userId: $userId})-[:HAS_PROJECT]->(project {projectNodeId: $projectNodeId})
+    #     MATCH (project)-[:HAS_TASK*0..]->(parent)-[:HAS_TASK*0..]->(task:Task {nodeId: $nodeId})
+    #     OPTIONAL MATCH (task)-[r]-()
+    #     WITH task, COLLECT(r) AS relsToDelete, COLLECT(task) AS tasksToDelete, parent
+    #     DETACH DELETE task
+    #     WITH DISTINCT parent, tasksToDelete, relsToDelete
+    #     WHERE NOT (parent)-[:HAS_TASK]->()
+    #     DETACH DELETE parent
+    #     RETURN project.projectNodeId as projectId, COUNT(DISTINCT tasksToDelete) AS deletedTasks, COUNT(DISTINCT relsToDelete) AS deletedRelationships
+    #     """
+    #     parameters = {"userId": user_id, "nodeId": node_id, "projectNodeId": project_node_id}
+    #     result = neo4j_conn.query(query, parameters)
+    #     return result
