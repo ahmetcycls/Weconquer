@@ -22,6 +22,7 @@ async def fetch_graph_data_for_vis_js(project_node_id: str, user_id: str):
     parameters = {"user_id": user_id, "project_node_id": project_node_id}
     results = neo4j_conn.query(query, parameters)
     formatted_results_for_vis_js = format_graph_data(results)
+    formatted_results_for_vis_js["projectNodeId"] = project_node_id
     return formatted_results_for_vis_js
 
 async def fetch_project_hierarchy(project_node_id: str, user_id: str):
