@@ -30,7 +30,7 @@ async def assistant_to_create_branches_or_task_under_node(nodeId, instruction_to
     print(instruction_to_the_assistant)
     prompt = f"""
     Create a JSON structure from the provided instructions: '{instruction_to_the_assistant}'. The JSON should organize branches or tasks under the project, with only 'title' as a mandatory field; all other fields are optional. Branches or tasks can have nested subtasks or further branches to any depth, potentially including 'description', 'assigned_to', 'status', 'skills' (list of strings), and further 'subtasks'. Structure the JSON as follows, adapting content dynamically as per instructions:
-    Subtasks always have to be a list, even if there is only one subtask.
+    Subtasks always have to be a list, even if there is only one subtask or no at all..
     {{
       "task_details": [
           {{
