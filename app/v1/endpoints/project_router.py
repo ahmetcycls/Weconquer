@@ -1,15 +1,11 @@
 # app/api/v1/endpoints/project_endpoint.py
 from fastapi import APIRouter, HTTPException, FastAPI, Request
-from app.domain.project.services import check_project_exists_for_user, fetch_project_hierarchy, fetch_graph_data_for_vis_js
+from app.domain.project.services import fetch_project_hierarchy, fetch_graph_data_for_vis_js
 from app.domain.user.repository_impl import create_project_for_user
 from app.infrastructure.database.neo4j.neo4j_connection import neo4j_conn
 from pydantic import BaseModel
 
-
 router = APIRouter()
-
-
-# Assuming the necessary imports and neo4j_conn initialization
 
 class ProjectReadRequest(BaseModel):
     project_node_id: str | None
@@ -27,11 +23,17 @@ async def get_project_graph_in_readable_format(payload: ProjectReadRequest):
         raise HTTPException(status_code=404, detail="Project not found")
     return project_data
 
-@router.get("/")
-def get_projects():
-    query = "MATCH (projects:Project) RETURN projects"
+class GetProject(BaseModel):
+    user_id: str
+@router.post("/")
+def get_projects(payload: GetProject):
+
+    query = """
+    MATCH (user:User {userId: $user_id})-[:HAS_PROJECT]->(projects:Project)
+    RETURN projects
+    """
     try:
-        projects = neo4j_conn.query(query)
+        projects = neo4j_conn.query(query, parameters={'user_id': payload.user_id})
         print(projects)
         projects = [dict(project['projects']) for project in projects]  # Adjust based on your data structure
         return {"projects": projects}

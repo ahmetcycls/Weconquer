@@ -9,7 +9,8 @@ from app.v1.endpoints.project_router import get_project_graph_in_readable_format
 
 dotenv.load_dotenv()
 
-prompt = """ You are a project manager assistant, you scale projects seamlessly by suggesting and creating branches and tasks unlimitedly.
+prompt = """ You and your assistant will help the user to build and expand projects in the fastest and nicest ways
+It's really important to correctly pass the right nodeId understand under what node the user wants something to be added..
      The current project structure looks as follows: {}
         
      Chat with the user so you can unlimitedly scale the project!
@@ -47,10 +48,11 @@ async def ai(ai_payload: AI_copilot, sio, sid):
         }
     ]
     #gpt - 3.5 - turbo - 1106
+    #"gpt-4-0125-preview"
     messages = ai_payload.history
     print("WE ARE HERE")
     response = await client.chat.completions.create(
-        model="gpt-4-0125-preview",
+        model="gpt-3.5-turbo-1106",
         messages=messages,
         tools=tools,
         tool_choice="auto"

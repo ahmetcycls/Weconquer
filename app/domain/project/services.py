@@ -26,6 +26,7 @@ async def fetch_graph_data_for_vis_js(project_node_id: str, user_id: str):
     return formatted_results_for_vis_js
 
 async def fetch_project_hierarchy(project_node_id: str, user_id: str):
+    print(user_id)
     # Adjusted query to start with the User node
     query = """
         MATCH (user:User {userId: $user_id})-[:HAS_PROJECT]->(project:Project {projectNodeId: $project_node_id})
