@@ -29,14 +29,15 @@ class TaskCreatePayload(BaseModel):
     task_details: List[TaskDetail]  # This correctly represents the incoming JSON structure
     parent_node_id: Optional[str] = None
 
-@router.post("/create/")  # Adjusted as per your correction
-def create_task_endpoint(payload: TaskCreatePayload):
+async def create_task_endpoint(payload: TaskCreatePayload, sio, sid):
     try:
         tasks_dicts = [task.dict(by_alias=True, exclude_none=True) for task in payload.task_details]
-        results = create_task_under_node(payload.user_id, payload.project_node_id, tasks_dicts, payload.parent_node_id)
-        return {"message": "Tasks created successfully", "data": results}
+        results = create_task_under_node_manual(payload.user_id, payload.project_node_id, tasks_dicts,
+                                                payload.parent_node_id, sio, sid)
+        await sio.emit('added_node', {'data': results}, room=sid)
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error processing message: {e}")
+        await sio.emit('error', {'detail': str(e)}, room=sid)
 
 def register_socketio_events(sio):
     @sio.event
@@ -49,7 +50,6 @@ def register_socketio_events(sio):
     @sio.event
     async def create_task_socket(sid, data):
         try:
-            print(data)
             payload = TaskCreatePayload(**data)
             tasks_dicts = [task.dict(by_alias=True, exclude_none=True) for task in payload.task_details]
             results = create_task_under_node_manual(payload.user_id, payload.project_node_id, tasks_dicts, payload.parent_node_id, sio, sid)

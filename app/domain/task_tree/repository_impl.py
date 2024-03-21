@@ -12,8 +12,12 @@ def generate_unique_short_id() -> str:
 
 
 def create_task_under_node(user_id: str, project_node_id: str, tasks: List[Dict],
-                           parent_node_id: Optional[str] = None) -> List[str]:
+                           parent_node_id: Optional[str] = None) -> dict:
     results = []
+    is_project_node = False
+    if project_node_id == parent_node_id:
+        is_project_node = True
+        parent_node_id = None
 
     for task in tasks:
         node_id = generate_unique_short_id()
@@ -29,11 +33,12 @@ def create_task_under_node(user_id: str, project_node_id: str, tasks: List[Dict]
             parent_match_query = "MATCH (parent:Project {projectNodeId: $projectNodeId})"
 
         query = f"""
-        {parent_match_query}
-        CREATE (parent)-[:HAS_TASK]->(task:Task {{nodeId: $nodeId}})
-        SET {set_clauses}
-        RETURN task.nodeId AS nodeId
-        """
+
+            {parent_match_query}
+            CREATE (parent)-[:HAS_TASK]->(task:Task {{nodeId: $nodeId}})
+            SET {set_clauses}
+            RETURN task.nodeId AS nodeId
+            """
 
         parameters = {"nodeId": node_id, **task_properties}
         if parent_node_id:
@@ -50,10 +55,18 @@ def create_task_under_node(user_id: str, project_node_id: str, tasks: List[Dict]
             # Handle subtasks recursively, if any
             subtasks = task.get('subtasks', [])
             if subtasks:
-                subtask_results = create_task_under_node(user_id, project_node_id, subtasks, new_task_node_id)
+                subtask_results = create_task_under_node_manual(user_id, project_node_id, subtasks, new_task_node_id)
                 results.extend(subtask_results)
+    the_task = tasks[0]
+    node_id_to_format = results[0]
 
-    return results
+    the_task["nodeId"] = node_id_to_format
+    if is_project_node:
+        the_task["edge"] = {"from": project_node_id, "to": node_id_to_format}
+    else:
+        the_task["edge"] = {"from": parent_node_id, "to": node_id_to_format}
+    print(the_task)
+    return the_task
 
 def create_task_under_node_manual(user_id: str, project_node_id: str, tasks: List[Dict],
                            parent_node_id: Optional[str] = None, sio=None, sid=None):

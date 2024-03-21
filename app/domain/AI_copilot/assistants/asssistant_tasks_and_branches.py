@@ -6,8 +6,10 @@ import dotenv
 import os
 
 from app.v1.endpoints.project_router import get_project_graph_in_readable_format, ProjectReadRequest
-from app.v1.endpoints.task_router import TaskDetail, TaskCreatePayload, create_task_endpoint
+from app.v1.endpoints.task_router import TaskDetail, TaskCreatePayload, create_task_endpoint, register_socketio_events
 from pydantic import parse_obj_as
+from app.domain.project.services import fetch_project_hierarchy
+
 dotenv.load_dotenv()
 async def chatGPT(prompt):
 
@@ -18,7 +20,7 @@ async def chatGPT(prompt):
     #gpt-3.5-turbo-1106
     # gpt - 4 - 0125 - preview
     response = await client.chat.completions.create(
-        model="gpt-4-0125-preview",
+        model="gpt-3.5-turbo-1106",
         messages=messages,
         response_format={ "type": "json_object"}
     )
@@ -26,11 +28,26 @@ async def chatGPT(prompt):
     return response_message
 
 
-async def assistant_to_create_branches_or_task_under_node(nodeId, instruction_to_the_assistant: str, ai_payload: AI_copilot, sio, sid):
-    print(instruction_to_the_assistant)
+async def assistant_to_create_branches_or_task_under_node(nodeId, ai_payload: AI_copilot, sio, sid):
+    print("assistant_to_create_branches_or_task_under_node")
+    print("\n\n")
+    print(ai_payload.history[1]["content"], "ai_payload.history[1]['content']")
+    project_graph = ai_payload.history[1]["content"]
+    history_json = ai_payload.history[2:]
+    #convert the history to a readable format for the prompt like user: assistant: user: assistant:
+    history = "\n".join([f"{message['role']}: {message['content']}" for message in history_json])
+    #TODO insert the project_graph into the prompt, let's make a cohesive prompt that will both emphasize the project graph and the user's last message(s)
     prompt = f"""
-    Create a JSON structure from the provided instructions: '{instruction_to_the_assistant}'. The JSON should organize branches or tasks under the project, with only 'title' as a mandatory field; all other fields are optional. Branches or tasks can have nested subtasks or further branches to any depth, potentially including 'description', 'assigned_to', 'status', 'skills' (list of strings), and further 'subtasks'. Structure the JSON as follows, adapting content dynamically as per instructions:
-    Subtasks always have to be a list, even if there is only one subtask or no at all..
+    json
+    Understand the following conversation keeping in mind the last thing the user said : '{history}'. 
+    
+    And also, understand the current project structure: '{project_graph}'.
+    
+    Your task is to fulfill the users request.
+    
+    Every task details you will provide will come under the node with the nodeId: '{nodeId}', automatically. You don't have to do anything about that.
+    
+    Now please provide the task details in the following format, kindly :
     {{
       "task_details": [
           {{
@@ -39,39 +56,38 @@ async def assistant_to_create_branches_or_task_under_node(nodeId, instruction_to
               "subtasks": [  // This array can include further nested tasks or branches, following the same format.
                   {{
                       "title": "Example Subtask or Sub-Branch Title",
-                        
-                          {{
-                              "title": "Example Sub-Subtask or Sub-Sub-Branch Title"
-                              // Further details are optional, highlighting the mandatory title field only.
-                          }}
-                      ]
+                        "description": "description."
+                        "subtasks": [  // This array can include further nested tasks or branches, following the same format.
+                      
                   }}
               ]
-          }}
+          }},
+        {{
+            "title": "Task or Branch Title",
+            "description": "description." etc etc
+        }}
       ]
     }}
+    So your'e adding under the node with the nodeId: '{nodeId}', do not add the same title that one has. You're building further upon it.
     """
     try:
         response = await chatGPT(prompt)
-
-        print(response)
+        print("CHATGPT JUST REPSONDED")
         response = json.loads(response)
-        print(response)
 
-        #TODO Check why this error is happening
         response["user_id"] = ai_payload.user_id
         response['project_node_id'] = ai_payload.project_node_id
+        response['parent_node_id'] = nodeId
         payload = parse_obj_as(TaskCreatePayload, response)
-        response = create_task_endpoint(payload)
-        print(response)
+        response = await create_task_endpoint(payload, sio, sid)
+
         #TODO Return the current graph of the project in readable nodes format for the AI
 
-        #Update the front-end graph with websockets
         projectReadRequest = ProjectReadRequest(project_node_id=ai_payload.project_node_id, user_id=ai_payload.user_id)
-        response_graph_readable = await get_project_graph_in_readable_format(projectReadRequest)
-        response_graph_readable = "Users graph is updated, ask the user if it looks good, you don't have to explain just ask them. : " + response_graph_readable
-        await sio.emit('graph_update', {'data': 'updated graph'}, room=sid)
-        return response_graph_readable
+        graph_readable = await fetch_project_hierarchy(ai_payload.project_node_id,ai_payload.user_id)
+        await sio.emit('added_node', {'data': response}, room=sid)
+        print("graph readable is emitted")
+        return graph_readable
     except Exception as e:
         print(e)
 
