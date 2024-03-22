@@ -1,0 +1,50 @@
+{
+  "title": "Random Task",
+  "description": "Complete the random task assigned anywhere in the project.",
+  "subtasks": [
+    {
+      "title": "Decrypt the encrypted message",
+      "description": "Use the clues to decrypt the hidden message.",
+      "nodeId": "CR2TJBDf3g",
+      "edge": {
+        "from": "5i59h8DcH6",
+        "to": "CR2TJBDf3g"
+      }
+    },
+    {
+      "title": "Navigate through the maze",
+      "description": "Find the correct path through the virtual maze.",
+      "subtasks": [
+        {
+          "title": "Find the hidden treasure",
+          "description": "Search for the hidden treasure in the virtual world.",
+          "subtasks": [
+            {
+              "title": "Locate the treasure map",
+              "description": "Find the map that leads to the hidden treasure.",
+              "nodeId": "EgCVip6saL",
+              "edge": {
+                "from": "JDfAvT8ggk",
+                "to": "EgCVip6saL"
+              }
+            }
+          ],
+          "nodeId": "JDfAvT8ggk",
+          "edge": {
+            "from": "4EnnBWm6L3",
+            "to": "JDfAvT8ggk"
+          }
+        },
+        {
+          "title": "Solve The Puzzle Task 3",
+          "description": "Solve the final puzzle to complete the level."
+        }
+      ]
+    }
+  ],
+  "nodeId": "5i59h8DcH6",
+  "edge": {
+    "from": "awaZXLynMF",
+    "to": "5i59h8DcH6"
+  }
+}

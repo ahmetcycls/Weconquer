@@ -30,13 +30,10 @@ async def chatGPT(prompt):
 
 async def assistant_to_create_branches_or_task_under_node(nodeId, ai_payload: AI_copilot, sio, sid):
     print("assistant_to_create_branches_or_task_under_node")
-    print("\n\n")
-    print(ai_payload.history[1]["content"], "ai_payload.history[1]['content']")
     project_graph = ai_payload.history[1]["content"]
     history_json = ai_payload.history[2:]
     #convert the history to a readable format for the prompt like user: assistant: user: assistant:
     history = "\n".join([f"{message['role']}: {message['content']}" for message in history_json])
-    #TODO insert the project_graph into the prompt, let's make a cohesive prompt that will both emphasize the project graph and the user's last message(s)
     prompt = f"""
     json
     Understand the following conversation keeping in mind the last thing the user said : '{history}'. 
@@ -46,8 +43,7 @@ async def assistant_to_create_branches_or_task_under_node(nodeId, ai_payload: AI
     Your task is to fulfill the users request.
     
     Every task details you will provide will come under the node with the nodeId: '{nodeId}', automatically. You don't have to do anything about that.
-    
-    Now please provide the task details in the following format, kindly :
+    Now please provide the task details in the following format, kindly all in one go :
     {{
       "task_details": [
           {{
@@ -68,26 +64,44 @@ async def assistant_to_create_branches_or_task_under_node(nodeId, ai_payload: AI
         }}
       ]
     }}
-    So your'e adding under the node with the nodeId: '{nodeId}', do not add the same title that one has. You're building further upon it.
     """
     try:
         response = await chatGPT(prompt)
-        print("CHATGPT JUST REPSONDED")
         response = json.loads(response)
 
         response["user_id"] = ai_payload.user_id
         response['project_node_id'] = ai_payload.project_node_id
         response['parent_node_id'] = nodeId
         payload = parse_obj_as(TaskCreatePayload, response)
-        response = await create_task_endpoint(payload, sio, sid)
+        create_task_response = await create_task_endpoint(payload, sio, sid)
 
-        #TODO Return the current graph of the project in readable nodes format for the AI
-
-        projectReadRequest = ProjectReadRequest(project_node_id=ai_payload.project_node_id, user_id=ai_payload.user_id)
         graph_readable = await fetch_project_hierarchy(ai_payload.project_node_id,ai_payload.user_id)
-        await sio.emit('added_node', {'data': response}, room=sid)
-        print("graph readable is emitted")
+
+
+        await sio.emit('added_node', {'data': create_task_response}, room=sid)
+
+        # Save the JSON string to a file
+
         return graph_readable
     except Exception as e:
         print(e)
 
+tools = [
+        {
+            "type": "function",
+            "function": {
+                "name": "assistant_to_create_branches_or_task_under_node",
+                "description": "supply the nodeId under which operations will be done, assistant will read the conversation and create the tasks or branches under the provided nodeId.",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "nodeId": {
+                            "type": "string",
+                            "description": "the nodeId of the task under which the new tasks will be created",
+                        },
+                    },
+                    "required": ["nodeId"],
+                },
+            },
+        }
+    ]

@@ -32,16 +32,12 @@ def register_socketio_events(sio):
         payload = AI_copilot(**data)
         try:
             if not payload.history:
-                # projectReadRequest = ProjectReadRequest(project_node_id=payload.project_node_id, user_id=payload.user_id)
                 response_graph_readable = await fetch_project_hierarchy(payload.project_node_id, payload.user_id)
-                print("RESPONSE GRAPH READABLE", response_graph_readable)
                 payload.history.append({"role": "system", "content": prompt})
                 payload.history.insert(1, {"role": "assistant", "content": response_graph_readable})
-                print(payload.history, "PAYLOAD HISTORY")
             payload.history.append({"role": "user", "content": payload.input})
 
             response_of_AI = await ai(payload, sio, sid)
-            print("RESPONSE OF AI", response_of_AI.history)
             await sio.emit('ai_copilot_response', {'response': response_of_AI.history}, room=sid)
         except Exception as e:
             logger.exception(f"Error processing message: {e}")

@@ -35,6 +35,7 @@ async def create_task_endpoint(payload: TaskCreatePayload, sio, sid):
         results = create_task_under_node_manual(payload.user_id, payload.project_node_id, tasks_dicts,
                                                 payload.parent_node_id, sio, sid)
         await sio.emit('added_node', {'data': results}, room=sid)
+        return results
     except Exception as e:
         logger.exception(f"Error processing message: {e}")
         await sio.emit('error', {'detail': str(e)}, room=sid)
