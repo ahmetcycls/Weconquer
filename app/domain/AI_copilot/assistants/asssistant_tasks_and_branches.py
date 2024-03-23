@@ -66,19 +66,23 @@ async def assistant_to_create_branches_or_task_under_node(nodeId, ai_payload: AI
     }}
     """
     try:
+
+        # with open('response_gpt.json', 'w') as file:
+        #     json.dump(response, file, indent=4)
         response = await chatGPT(prompt)
         response = json.loads(response)
-
+        print("\n\n\n\n")
         response["user_id"] = ai_payload.user_id
         response['project_node_id'] = ai_payload.project_node_id
         response['parent_node_id'] = nodeId
         payload = parse_obj_as(TaskCreatePayload, response)
         create_task_response = await create_task_endpoint(payload, sio, sid)
+        print(create_task_response, "printing the create_task_response")
 
         graph_readable = await fetch_project_hierarchy(ai_payload.project_node_id,ai_payload.user_id)
 
-
-        await sio.emit('added_node', {'data': create_task_response}, room=sid)
+        #TODO instead of sending the nodes here, send it within the repository_impl.py file
+        # await sio.emit('added_node', {'data': create_task_response}, room=sid)
 
         # Save the JSON string to a file
 
