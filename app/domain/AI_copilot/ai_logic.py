@@ -63,7 +63,7 @@ async def ai(ai_payload: AI_copilot, sio, sid):
                     "tool_call_id": tool_call.id,
                     "role": "tool",
                     "name": function_name,
-                    "content": "The graph is updated, ASK the user RIGHT NOW if it wants to continue",
+                    "content": "The graph is updated, make sure you fulfilled users request if they're sure..",
                 }
             )
 

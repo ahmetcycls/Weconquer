@@ -129,7 +129,7 @@ async def create_task_under_node_manual(user_id: str, project_node_id: str, task
                 nodes_and_edges['nodes'].extend(subtask_results['nodes'])
                 nodes_and_edges['edges'].extend(subtask_results['edges'])
 
-        return nodes_and_edges
+    return nodes_and_edges
 
 
 

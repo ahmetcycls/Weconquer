@@ -50,6 +50,7 @@ def register_socketio_events(sio):
     @sio.event
     async def create_task_socket(sid, data):
         try:
+            print(data)
             payload = TaskCreatePayload(**data)
             tasks_dicts = [task.dict(by_alias=True, exclude_none=True) for task in payload.task_details]
             results = await create_task_under_node_manual(payload.user_id, payload.project_node_id, tasks_dicts, payload.parent_node_id, sio, sid)
