@@ -37,13 +37,14 @@ async def assistant_to_create_branches_or_task_under_node(nodeId, ai_payload: AI
     json
     Understand the following conversation keeping in mind the last thing the user wants: '{history}'. 
     
-    And also, understand the current project structure which is the graph, and keep in mind the nodes and right under it the titles: '{project_graph}'.
+    Understand the current project structure which is the graph: '{project_graph}'.
     
-    Your task is to understand what the user wants and structure a JSON with things that will be attached to the following node '{nodeId}'.
+    Structure a JSON with things that will be attached to the Node ID of the title the user wants it to be attached to.
+    So analyse under what title the user wants something, on the same level of the title take the nodeId and add it to the json you're about to create.
     
-    You only have to make sure the JSON is correctly spitted out, and the last users request is fulfilled.
-    This is an example response, you can go create as you like:
+    This is an example response, make sure whatever you will add will come under the RIGHT nodeID, we don't want to repeat things so don't repeat the title of the nodeId in the following json:
     {{
+      "parent_node_id": "under the nodeid where you will add the tasks",
       "task_details": [
           {{
             "title": "title"
@@ -59,16 +60,19 @@ async def assistant_to_create_branches_or_task_under_node(nodeId, ai_payload: AI
             }},
             {{
             "title": "Title",
-            "description": "description." etc etc
+            "description": "description." 
             }},
             {{
             "title": "title",
-            "description": "description." etc etc
+            "description": "description." 
             }}
       ]
     }}
     
-    As you see, you can go unlimitedly. You can create as many subtasks or branches as you want. Fully understand the users request and provide the tasks or branches accordingly. Try to create more then 2 nested tasks.
+    As you see, you can go unlimitedly. You can create as many subtasks or branches as you want. 
+    Remember that everything you output will come right under the nodeId you will specify, so do not repeat that title.
+    
+    
     """
     try:
 
@@ -78,10 +82,9 @@ async def assistant_to_create_branches_or_task_under_node(nodeId, ai_payload: AI
 
         with open('response_gpt.json', 'w') as file:
             json.dump(response, file, indent=4)
-        print("\n\n\n\n")
         response["user_id"] = ai_payload.user_id
         response['project_node_id'] = ai_payload.project_node_id
-        response['parent_node_id'] = nodeId
+        # response['parent_node_id'] = nodeId
         payload = parse_obj_as(TaskCreatePayload, response)
         create_task_response = await create_task_endpoint(payload, sio, sid)
         print(create_task_response, "printing the create_task_response")
