@@ -11,7 +11,7 @@ def generate_unique_short_id() -> str:
     return shortuuid.ShortUUID().random(length=10)
 
 
-def create_task_under_node(user_id: str, project_node_id: str, tasks: List[Dict],
+async def create_task_under_node(user_id: str, project_node_id: str, tasks: List[Dict],
                            parent_node_id: Optional[str] = None) -> dict:
     results = []
     is_project_node = False
@@ -55,7 +55,7 @@ def create_task_under_node(user_id: str, project_node_id: str, tasks: List[Dict]
             # Handle subtasks recursively, if any
             subtasks = task.get('subtasks', [])
             if subtasks:
-                subtask_results = create_task_under_node_manual(user_id, project_node_id, subtasks, new_task_node_id)
+                subtask_results = await create_task_under_node_manual(user_id, project_node_id, subtasks, new_task_node_id)
                 results.extend(subtask_results)
     the_task = tasks[0]
     node_id_to_format = results[0]

@@ -10,5 +10,4 @@ pytz
 httpx
 pydantic[email]
 openai
-graphene
 shortuuid
