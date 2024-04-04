@@ -11,7 +11,7 @@ from typing import List, Optional
 router = APIRouter()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
+import json
 class TaskDetail(BaseModel):
     title: str
     assigned_to: Optional[str] = None
@@ -29,14 +29,15 @@ class TaskCreatePayload(BaseModel):
     task_details: List[TaskDetail]  # This correctly represents the incoming JSON structure
     parent_node_id: Optional[str] = None
 
-@router.post("/create/")  # Adjusted as per your correction
-def create_task_endpoint(payload: TaskCreatePayload):
+async def create_task_endpoint(payload: TaskCreatePayload, sio, sid):
     try:
         tasks_dicts = [task.dict(by_alias=True, exclude_none=True) for task in payload.task_details]
-        results = create_task_under_node(payload.user_id, payload.project_node_id, tasks_dicts, payload.parent_node_id)
-        return {"message": "Tasks created successfully", "data": results}
+        results = await create_task_under_node_manual(payload.user_id, payload.project_node_id, tasks_dicts,
+                                                payload.parent_node_id, sio, sid)
+        return results
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        logger.exception(f"Error processing message: {e}")
+        await sio.emit('error', {'detail': str(e)}, room=sid)
 
 def register_socketio_events(sio):
     @sio.event
@@ -52,7 +53,8 @@ def register_socketio_events(sio):
             print(data)
             payload = TaskCreatePayload(**data)
             tasks_dicts = [task.dict(by_alias=True, exclude_none=True) for task in payload.task_details]
-            results = create_task_under_node_manual(payload.user_id, payload.project_node_id, tasks_dicts, payload.parent_node_id, sio, sid)
+            results = await create_task_under_node_manual(payload.user_id, payload.project_node_id, tasks_dicts, payload.parent_node_id, sio, sid)
+
             await sio.emit('added_node', {'data': results}, room=sid)
         except Exception as e:
             logger.exception(f"Error processing message: {e}")

@@ -37,7 +37,6 @@ async def fetch_project_hierarchy(project_node_id: str, user_id: str):
 
 
     results = neo4j_conn.query(query, parameters={"user_id": user_id, "project_node_id": project_node_id})
-    print(results)
     if not results or not results[0]['project']:
         return {"nodeId": None, "title": "", "subtasks": []}
 
@@ -48,7 +47,7 @@ async def fetch_project_hierarchy(project_node_id: str, user_id: str):
     task_map = {}
     for task in tasks:
         if task:  # Ensure the task is not None
-            task_info = {"nodeId": task['nodeId'], "title": task.get('title', "")}
+            task_info = {"nodeId": task['nodeId'], "title": task.get('title', ""), "description": task.get('description', "")}
             # Only add the 'subtasks' key if there are subtasks for this task
             task_info["subtasks"] = []
             task_map[task['nodeId']] = task_info
@@ -74,7 +73,8 @@ async def fetch_project_hierarchy(project_node_id: str, user_id: str):
     project_structure = {
         "nodeId": project.get("projectNodeId"),
         "title": project.get("name"),
-        "subtasks": top_level_tasks
+        "subtasks": top_level_tasks,
+        "description": project.get("description")
     }
 
     # Remove 'subtasks' key from the project if there are no top-level tasks
@@ -82,7 +82,7 @@ async def fetch_project_hierarchy(project_node_id: str, user_id: str):
         project_structure.pop("subtasks", None)
     project_text_representation =await format_project_to_text(project_structure)
 
-    project_text_representation = "The current project state is as follows:" + project_text_representation
+    project_text_representation = "SYSTEM DYNAMIC GRAPH MESSAGE: The current project state is as follows:\n\n" + project_text_representation
     return project_text_representation
 
 
@@ -92,6 +92,7 @@ async def format_project_to_text(project, indent=0):
     # Start building the string representation
     project_str = f'{base_indent}nodeId: {project["nodeId"]},\n'
     project_str += f'{base_indent}title: {project["title"]},\n'
+    project_str += f'{base_indent}description: {project["description"]},\n'
 
     # Check if there are subtasks to process
     if "subtasks" in project and project["subtasks"]:
