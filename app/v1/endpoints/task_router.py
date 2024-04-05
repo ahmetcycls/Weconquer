@@ -26,12 +26,12 @@ TaskDetail.update_forward_refs()
 class TaskCreatePayload(BaseModel):
     user_id: str
     project_node_id: str
-    task_details: List[TaskDetail]  # This correctly represents the incoming JSON structure
+    subnodes: List[TaskDetail]  # This correctly represents the incoming JSON structure
     parent_node_id: Optional[str] = None
 
 async def create_task_endpoint(payload: TaskCreatePayload, sio, sid):
     try:
-        tasks_dicts = [task.dict(by_alias=True, exclude_none=True) for task in payload.task_details]
+        tasks_dicts = [task.dict(by_alias=True, exclude_none=True) for task in payload.subnodes]
         results = await create_task_under_node_manual(payload.user_id, payload.project_node_id, tasks_dicts,
                                                 payload.parent_node_id, sio, sid)
         return results
@@ -52,7 +52,7 @@ def register_socketio_events(sio):
         try:
             print(data)
             payload = TaskCreatePayload(**data)
-            tasks_dicts = [task.dict(by_alias=True, exclude_none=True) for task in payload.task_details]
+            tasks_dicts = [task.dict(by_alias=True, exclude_none=True) for task in payload.subnodes]
             results = await create_task_under_node_manual(payload.user_id, payload.project_node_id, tasks_dicts, payload.parent_node_id, sio, sid)
 
             await sio.emit('added_node', {'data': results}, room=sid)
@@ -64,7 +64,7 @@ def register_socketio_events(sio):
     async def delete_node_and_subnodes_socket(sid, data):
         try:
             print(data)
-            results = delete_node_and_subnodes(data["user_id"], data['node_id'], data['project_node_id'])
+            results = await delete_node_and_subnodes(data["user_id"], data['node_id'], data['project_node_id'])
             await sio.emit('graph_update', {'data': results}, room=sid)
         except Exception as e:
             logger.exception(f"Error processing message: {e}")
@@ -75,7 +75,7 @@ def register_socketio_events(sio):
         try:
             print("deleteeeee")
             print(data)
-            results = delete_subnodes_and_their_relationships(data["user_id"], data['project_node_id'], data['node_id'] )
+            results = await delete_subnodes_and_their_relationships(data["user_id"], data['project_node_id'], data['node_id'] )
             # results = delete_direct_subnodes_only(data['node_id'])
 
             await sio.emit('graph_update', {'data': results}, room=sid)

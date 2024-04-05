@@ -90,8 +90,7 @@ async def format_project_to_text(project, indent=0):
     # Base indentation for this level
     base_indent = "    " * indent
     # Start building the string representation
-    project_str = f'{base_indent}nodeId: {project["nodeId"]},\n'
-    project_str += f'{base_indent}title: {project["title"]},\n'
+    project_str = f'{base_indent}ID: {project["nodeId"]}, title: {project["title"]},\n'
     project_str += f'{base_indent}description: {project["description"]},\n'
 
     # Check if there are subtasks to process
