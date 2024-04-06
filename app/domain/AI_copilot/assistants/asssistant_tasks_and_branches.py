@@ -41,12 +41,12 @@ async def assistant_to_create_branches_or_task_under_node(nodeId, ai_payload: AI
     # history = "\n".join([f"{message['role']}: {message['content']}" for message in history_json])
     prompt = f"""
     json
-    Understand the current project structure which is the graph: '{project_graph}'.
+    Understand the current project structure which is the "Project Graph": '{project_graph}'.
     
     Structure a JSON with things that will be attached to the Node ID of the title the user wants it to be attached to.
     So figure out from the conversation under which node the user wants something to be added to.
     
-    This is an example response, make sure whatever you will add will come under the RIGHT nodeID, BE creative as possible about the things that will come under what the user wants. Make sure ::
+    This is an example response, make sure whatever you will add will come under the RIGHT nodeID, BE creative as possible about the things that will come under what the user wants.
     {{
       "parent_node_id": "nodeid under which the subnodes will be placed at",
       "subnodes": [
@@ -76,7 +76,7 @@ async def assistant_to_create_branches_or_task_under_node(nodeId, ai_payload: AI
     As you see, you can go unlimitedly. You can create as many subtasks or branches as you want. 
     
     Remember, whatever you will produce under the subnodes array, imagine it will come right under {node_title}. So do not include {node_title} in the subnodes array, just pretend whatever you're producing in subnodes array that it will come right under {node_title}.
-    
+    AND make sure you're not generating the same things that already exist under {node_title}, see "Project Graph" above the example json response.
     """
     allowed_roles = {"user", "system", "assistant"}
     filtered_history_json = [entry for entry in history_json if entry.get("content") is not None and entry.get("role") in allowed_roles]
