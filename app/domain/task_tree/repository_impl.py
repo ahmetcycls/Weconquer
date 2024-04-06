@@ -1,15 +1,38 @@
 from typing import List, Dict, Optional
 import shortuuid
-from ...infrastructure.database.neo4j.neo4j_connection import Neo4jConnection
+from ...infrastructure.database.neo4j.neo4j_connection import Neo4jConnection, AsyncNeo4jConnection
 import json
 # Assuming neo4j_conn is globally accessible in this module or passed appropriately
 
-neo4j_conn = Neo4jConnection(uri="bolt://localhost:7687", user="neo4j", password="Qgqus4uq")
+neo4j_conn = AsyncNeo4jConnection(uri="bolt://localhost:7687", user="neo4j", password="Qgqus4uq")
 
 # Make sure neo4j_conn is correctly initialized
 def generate_unique_short_id() -> str:
     return shortuuid.ShortUUID().random(length=10)
 
+#TODO add match for userID
+async def get_node_title(user_id: str, project_id: str, node_id: str) -> Optional[str]:
+    # Directly return the project title if node_id is the project_node_id
+    if project_id == node_id:
+        query = """
+        MATCH (project:Project {projectNodeId: $projectId})
+        RETURN project.title AS title
+        """
+        parameters = {"projectId": project_id}
+    else:
+        # Assuming tasks are uniquely identified within a project by their nodeId
+        query = """
+        MATCH (project:Project {projectNodeId: $projectId})-[:HAS_TASK*]->(task:Task {nodeId: $nodeId})
+        RETURN task.title AS title
+        """
+        parameters = {"projectId": project_id, "nodeId": node_id}
+
+    result = await neo4j_conn.query(query, parameters=parameters)
+
+    if result and result[0]:
+        return result[0].get("title")
+
+    return None
 
 async def create_task_under_node(user_id: str, project_node_id: str, tasks: List[Dict],
                            parent_node_id: Optional[str] = None) -> dict:
@@ -46,7 +69,7 @@ async def create_task_under_node(user_id: str, project_node_id: str, tasks: List
         else:
             parameters["projectNodeId"] = project_node_id
 
-        result = neo4j_conn.query(query, parameters=parameters)
+        result = await neo4j_conn.query(query, parameters=parameters)
         print(result)
         if result and result[0]:
             new_task_node_id = result[0]["nodeId"]
@@ -106,7 +129,7 @@ async def create_task_under_node_manual(user_id: str, project_node_id: str, task
             parameters["projectNodeId"] = project_node_id
 
         # Simulate the query execution and obtaining a result
-        result = neo4j_conn.query(query, parameters=parameters)
+        result = await neo4j_conn.query(query, parameters=parameters)
         # result = [{'nodeId': node_id}]  # Assuming success for demonstration
 
         if result:
@@ -133,7 +156,7 @@ async def create_task_under_node_manual(user_id: str, project_node_id: str, task
 
 
 
-def update_task_by_node_id(node_id: str, update_details: dict):
+async def update_task_by_node_id(node_id: str, update_details: dict):
     set_clauses = ", ".join([f"n.{key} = ${key}" for key in update_details.keys()])
     query = f"""
     MATCH (n:Task) WHERE n.nodeId = $node_id
@@ -141,7 +164,7 @@ def update_task_by_node_id(node_id: str, update_details: dict):
     RETURN n
     """
     parameters = {"node_short_id": node_id, **update_details}
-    result = neo4j_conn.query(query, parameters)
+    result = await neo4j_conn.query(query, parameters)
     return result
 
 # def delete_node_and_subnodes(user_id: str, node_id: str, project_node_id: str):
@@ -159,7 +182,7 @@ def update_task_by_node_id(node_id: str, update_details: dict):
 #     result = neo4j_conn.query(query, parameters)
 #     return result
 
-def delete_node_and_subnodes(user_id: str, node_id: str, project_node_id: str):
+async def delete_node_and_subnodes(user_id: str, node_id: str, project_node_id: str):
     query = """
     MATCH (user:User {userId: $userId})-[:HAS_PROJECT]->(project {projectNodeId: $projectNodeId})
     OPTIONAL MATCH (project)-[:HAS_TASK*]->(task:Task {nodeId: $nodeId})
@@ -174,9 +197,9 @@ def delete_node_and_subnodes(user_id: str, node_id: str, project_node_id: str):
     RETURN deletionOccurred, remainingTasks > 0 AS projectRetained
     """
     parameters = {"userId": user_id, "nodeId": node_id, "projectNodeId": project_node_id}
-    result = neo4j_conn.query(query, parameters)
+    result = await neo4j_conn.query(query, parameters)
     return result
-def delete_subnodes_and_their_relationships(user_id: str, project_node_id: str, node_id: str):
+async def delete_subnodes_and_their_relationships(user_id: str, project_node_id: str, node_id: str):
     print(project_node_id, node_id, "delete_subnodes_and_their_relationships")
     # Check if node_id is the same as project_node_id, indicating deletion beneath the project node
     if project_node_id == node_id:
@@ -197,7 +220,7 @@ def delete_subnodes_and_their_relationships(user_id: str, project_node_id: str, 
         RETURN COUNT(DISTINCT subNode) AS deletedSubNodes, COUNT(DISTINCT r) AS deletedRelationships
         """
     parameters = {"userId": user_id, "projectNodeId": project_node_id, "nodeId": node_id}
-    result = neo4j_conn.query(query, parameters)
+    result = await neo4j_conn.query(query, parameters)
     return result
     #In the future for dynamic graph update after update instead of refreshing the whole graph
     # def delete_node_and_subnodes(user_id: str, node_id: str, project_node_id: str):
