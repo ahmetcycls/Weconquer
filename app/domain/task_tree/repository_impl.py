@@ -15,11 +15,12 @@ async def get_node_title(user_id: str, project_id: str, node_id: str) -> Optiona
     # Directly return the project title if node_id is the project_node_id
     if project_id == node_id:
         query = """
-        MATCH (project:Project {projectNodeId: $projectId})
-        RETURN project.title AS title
+        MATCH (project:Project {projectNodeId: $projectNodeId})
+        RETURN project.name AS title
         """
-        parameters = {"projectId": project_id}
+        parameters = {"projectNodeId": project_id}
     else:
+
         # Assuming tasks are uniquely identified within a project by their nodeId
         query = """
         MATCH (project:Project {projectNodeId: $projectId})-[:HAS_TASK*]->(task:Task {nodeId: $nodeId})
@@ -31,8 +32,8 @@ async def get_node_title(user_id: str, project_id: str, node_id: str) -> Optiona
 
     if result and result[0]:
         return result[0].get("title")
-
-    return None
+    print(result)
+    return result
 
 async def create_task_under_node(user_id: str, project_node_id: str, tasks: List[Dict],
                            parent_node_id: Optional[str] = None) -> dict:
