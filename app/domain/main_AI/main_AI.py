@@ -27,21 +27,23 @@ async def ai(ai_payload: AI_copilot, sio, sid):
 
     #gpt - 3.5 - turbo - 1106
     #"gpt-4-0125-preview"
-    messages = ai_payload.history
 
     request_params = {
         'model': ai_payload.selected_model,
-        'messages': messages,
+        'messages': ai_payload.history,
         'temperature': 0.1
     }
 
-    if ai_payload.creative_mode == False:
+    if not ai_payload.creative_mode:
         request_params['tools'] = tools
         request_params['tool_choice'] = "auto"
+    print("Voor response in Main AI")
+    print(ai_payload.history)
 
     response = await client.chat.completions.create(
         **request_params
     )
+    print("Na response in Main AI")
     response_message = response.choices[0].message
 
     tool_calls = response_message.tool_calls
@@ -64,7 +66,8 @@ async def ai(ai_payload: AI_copilot, sio, sid):
             function_response = await function_to_call(
                 **function_args
             )
-            ai_payload.history[1]["content"] = function_response
+            print(function_response,"printing funcion_response")
+            # ai_payload.history[1]["content"] = function_response
             ai_payload.history.append(
                 {
                     "tool_call_id": tool_call.id,

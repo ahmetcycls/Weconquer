@@ -33,6 +33,7 @@ def get_projects(payload: GetProject):
     RETURN projects
     """
     try:
+        print("getting projects")
         projects = neo4j_conn.query(query, parameters={'user_id': payload.user_id})
         print(projects)
         projects = [dict(project['projects']) for project in projects]  # Adjust based on your data structure
