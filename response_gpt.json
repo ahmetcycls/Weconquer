@@ -1,36 +1,13 @@
 {
-    "task_details": [
+    "parent_node_id": "HVcQtZfv4y",
+    "subnodes": [
         {
-            "title": "Explore blockchain technology",
-            "description": "Gain insights into how cryptocurrencies are created, stored, and transferred by understanding blockchain technology.",
-            "subtasks": [
-                {
-                    "title": "Understand the concept of mining in blockchain",
-                    "description": "Learn how mining works in blockchain and its role in validating transactions and creating new blocks.",
-                    "subtasks": [
-                        {
-                            "title": "Research different mining algorithms",
-                            "description": "Explore the various mining algorithms used in blockchain, such as Proof of Work (PoW) and Proof of Stake (PoS).",
-                            "subtasks": [
-                                {
-                                    "title": "Understand the energy consumption of different mining algorithms",
-                                    "description": "Dive into the energy consumption and environmental impact of different mining algorithms in blockchain."
-                                }
-                            ]
-                        }
-                    ]
-                },
-                {
-                    "title": "Explore the concept of decentralized consensus",
-                    "description": "Understand how blockchain achieves consensus in a decentralized network without a central authority.",
-                    "subtasks": [
-                        {
-                            "title": "Learn about different consensus mechanisms",
-                            "description": "Research and compare various consensus mechanisms used in blockchain, such as Byzantine Fault Tolerance (BFT) and Delegated Proof of Stake (DPoS)."
-                        }
-                    ]
-                }
-            ]
+            "title": "Real-time Data Processing",
+            "description": "Implement real-time processing of brainwave data to ensure efficient and accurate collection."
+        },
+        {
+            "title": "Data Analysis",
+            "description": "Develop algorithms to analyze the collected brainwave data for quality assessment and pattern recognition."
         }
     ]
 }

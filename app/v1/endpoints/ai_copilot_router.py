@@ -1,7 +1,7 @@
 from fastapi import APIRouter, HTTPException, FastAPI
-# from app.domain.AI_copilot.models import AI_copilot
+# from app.domain.main_AI.models import main_AI
 from pydantic import BaseModel
-from app.domain.AI_copilot.ai_logic import ai, prompt
+from app.domain.main_AI.main_AI import ai, prompt
 from app.v1.endpoints.project_router import get_project_graph_in_readable_format, ProjectReadRequest
 from app.domain.project.services import fetch_project_hierarchy
 import logging
@@ -17,6 +17,9 @@ class AI_copilot(BaseModel):
     metadata: dict | None = None
     user_id: str | None = None
     project_node_id: str | None = None
+    selected_model: str
+    creative_mode: bool
+
 
 def register_socketio_events(sio):
     @sio.event

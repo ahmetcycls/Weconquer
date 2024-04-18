@@ -1,5 +1,5 @@
 
-from app.domain.AI_copilot.models import AI_copilot
+from app.domain.main_AI.models import AI_copilot
 from openai import OpenAI, AsyncOpenAI
 import json
 import dotenv
@@ -11,7 +11,7 @@ from pydantic import parse_obj_as
 from app.domain.project.services import fetch_project_hierarchy
 
 dotenv.load_dotenv()
-async def chatGPT(messages):
+async def chatGPT(messages, model):
 
     client = AsyncOpenAI()
     client.api_key = os.getenv("OPENAI_API_KEY")
@@ -20,7 +20,7 @@ async def chatGPT(messages):
     #gpt-3.5-turbo-1106
     # gpt - 4 - 0125 - preview
     response = await client.chat.completions.create(
-        model="gpt-3.5-turbo-1106",
+        model=model,
         messages=messages,
         response_format={ "type": "json_object"},
         temperature=0.2
@@ -53,11 +53,11 @@ async def assistant_to_create_branches_or_task_under_node(nodeId, ai_payload: AI
           {{
             "title": "title"
             "description": "description.",
-            "subtasks": [  // This array can include further nested tasks or branches, following the same format.
+            "subtasks": [  // This array can include further unlimited subtasks with subtasks recursively, following the same format.
                   {{
-                      "title": "Example Subtask or Sub-Branch Title",
+                        "title": "Example Subtask or Sub-Branch Title",
                         "description": "description."
-                        "subtasks": [  // This array can include further nested tasks or branches, following the same format.
+                        "subtasks": [  // This array can include further unlimited subtasks with subtasks recursively, following the same format. OR, don't specify
                       
                     }}
               ]
@@ -88,7 +88,7 @@ async def assistant_to_create_branches_or_task_under_node(nodeId, ai_payload: AI
     try:
 
 
-        response = await chatGPT(filtered_history_json)
+        response = await chatGPT(filtered_history_json, AI_copilot.selected_model)
         response = json.loads(response)
 
         with open('response_gpt.json', 'w') as file:
@@ -100,13 +100,11 @@ async def assistant_to_create_branches_or_task_under_node(nodeId, ai_payload: AI
         create_task_response = await create_task_endpoint(payload, sio, sid)
         print(create_task_response, "printing the create_task_response")
 
-        graph_readable = await fetch_project_hierarchy(ai_payload.project_node_id,ai_payload.user_id)
+        graph_readable: str = await fetch_project_hierarchy(ai_payload.project_node_id, ai_payload.user_id)
 
         #TODO instead of sending the nodes here, send it within the repository_impl.py file
         # await sio.emit('added_node', {'data': create_task_response}, room=sid)
-
         # Save the JSON string to a file
-
         return graph_readable
     except Exception as e:
         print(e)

@@ -10,7 +10,6 @@ neo4j_conn = AsyncNeo4jConnection(uri="bolt://localhost:7687", user="neo4j", pas
 def generate_unique_short_id() -> str:
     return shortuuid.ShortUUID().random(length=10)
 
-#TODO add match for userID
 async def get_node_title(user_id: str, project_id: str, node_id: str) -> Optional[str]:
     # Directly return the project title if node_id is the project_node_id
     if project_id == node_id:

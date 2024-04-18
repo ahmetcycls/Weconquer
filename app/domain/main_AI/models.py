@@ -7,3 +7,5 @@ class AI_copilot(BaseModel):
     metadata: dict | None = None
     user_id: str | None = None
     project_node_id: str | None = None
+    selected_model: str
+    creative_mode: bool

@@ -1,5 +1,5 @@
-from app.domain.AI_copilot.models import AI_copilot
-from app.domain.AI_copilot.assistants.asssistant_tasks_and_branches import assistant_to_create_branches_or_task_under_node, tools
+from app.domain.main_AI.models import AI_copilot
+from app.domain.main_AI.agents.tasksAI import assistant_to_create_branches_or_task_under_node, tools
 from openai import OpenAI, AsyncOpenAI
 import json
 import dotenv
@@ -29,11 +29,18 @@ async def ai(ai_payload: AI_copilot, sio, sid):
     #"gpt-4-0125-preview"
     messages = ai_payload.history
 
+    request_params = {
+        'model': ai_payload.selected_model,
+        'messages': messages,
+        'temperature': 0.1
+    }
+
+    if ai_payload.creative_mode == False:
+        request_params['tools'] = tools
+        request_params['tool_choice'] = "auto"
+
     response = await client.chat.completions.create(
-        model="gpt-3.5-turbo-1106",
-        messages=messages,
-        tools=tools,
-        tool_choice="auto"
+        **request_params
     )
     response_message = response.choices[0].message
 
