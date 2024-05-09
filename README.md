@@ -1,1 +1,1 @@
-# Weconquer
+# Web graph copilot
